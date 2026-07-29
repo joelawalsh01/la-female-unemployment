@@ -1,0 +1,647 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Women's unemployment across Los Angeles County census tracts</title>
+<meta name="description" content="Female unemployment rate for all 2,498 Los Angeles County census tracts, from the ACS 2020-2024 five-year estimates.">
+
+<style>
+:root{
+  color-scheme: light;
+  --surface:#fcfcfb; --surface-2:#f4f3f0; --line:#e6e5e1;
+  --ink:#0b0b0b; --ink-2:#52514e; --ink-3:#84837d;
+  --accent:#256abf; --warn:#e34948;
+  --s1:#cde2fb; --s2:#9ec5f4; --s3:#6da7ec; --s4:#3987e5; --s5:#256abf; --s6:#104281;
+  --na:#e0dfda;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --surface:#1a1a19; --surface-2:#232322; --line:#383835;
+    --ink:#ffffff; --ink-2:#c3c2b7; --ink-3:#8d8c84;
+    --accent:#3987e5; --warn:#e66767;
+    --s1:#184f95; --s2:#1c5cab; --s3:#256abf; --s4:#3987e5; --s5:#6da7ec; --s6:#9ec5f4;
+    --na:#33332f;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --surface:#1a1a19; --surface-2:#232322; --line:#383835;
+  --ink:#ffffff; --ink-2:#c3c2b7; --ink-3:#8d8c84;
+  --accent:#3987e5; --warn:#e66767;
+  --s1:#184f95; --s2:#1c5cab; --s3:#256abf; --s4:#3987e5; --s5:#6da7ec; --s6:#9ec5f4;
+  --na:#33332f;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);
+  font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding:32px 20px 72px}
+h1{font-size:1.9rem;line-height:1.2;margin:0 0 8px;letter-spacing:-.02em}
+h2{font-size:1.12rem;margin:40px 0 6px;letter-spacing:-.01em}
+h3{font-size:.95rem;margin:22px 0 6px;color:var(--ink-2);font-weight:600}
+p{margin:0 0 12px}
+.sub{color:var(--ink-2);font-size:.96rem;margin-bottom:4px}
+.muted{color:var(--ink-3);font-size:.83rem}
+a{color:var(--accent)}
+hr{border:0;border-top:1px solid var(--line);margin:34px 0}
+
+.controls{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
+  padding:14px 16px;margin:22px 0 18px}
+.ctl{display:flex;flex-direction:column;gap:5px;min-width:170px}
+.ctl label{font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:600}
+select,input[type=range]{accent-color:var(--accent)}
+select{background:var(--surface);color:var(--ink);border:1px solid var(--line);
+  border-radius:6px;padding:6px 8px;font-size:.9rem;font-family:inherit}
+input[type=range]{width:190px}
+.ctl output{font-variant-numeric:tabular-nums;font-size:.83rem;color:var(--ink-2)}
+button.reset{background:none;border:1px solid var(--line);color:var(--ink-2);
+  border-radius:6px;padding:6px 11px;font-size:.83rem;cursor:pointer;font-family:inherit}
+button.reset:hover{border-color:var(--accent);color:var(--accent)}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 22px}
+.tile{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.tile .k{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:600}
+.tile .v{font-size:1.5rem;font-weight:650;letter-spacing:-.02em;margin-top:2px;font-variant-numeric:tabular-nums}
+
+.grid{display:grid;grid-template-columns:1.35fr 1fr;gap:22px;align-items:start}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px 16px}
+.card h3{margin-top:0}
+
+#mapwrap{position:relative}
+#map{width:100%;height:auto;display:block;cursor:crosshair;border-radius:6px}
+#tip{position:absolute;pointer-events:none;opacity:0;transition:opacity .09s;
+  background:var(--ink);color:var(--surface);padding:7px 10px;border-radius:6px;
+  font-size:.8rem;line-height:1.4;white-space:nowrap;z-index:5;
+  box-shadow:0 3px 12px rgba(0,0,0,.28)}
+.legend{display:flex;flex-wrap:wrap;gap:2px;margin:12px 0 0;align-items:flex-end}
+.legend .sw{width:52px}
+.legend .sw i{display:block;height:9px;border-radius:2px}
+.legend .sw span{display:block;font-size:.7rem;color:var(--ink-2);margin-top:4px;text-align:center;
+  font-variant-numeric:tabular-nums}
+
+.detail{margin-top:12px;border-top:1px solid var(--line);padding-top:12px;font-size:.88rem}
+.detail .dh{font-weight:650;margin-bottom:7px}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px 16px}
+.dgrid div span{display:block;color:var(--ink-3);font-size:.74rem;text-transform:uppercase;letter-spacing:.05em}
+.dgrid div b{font-weight:600;font-variant-numeric:tabular-nums}
+
+table{border-collapse:collapse;width:100%;font-size:.85rem;font-variant-numeric:tabular-nums}
+th,td{text-align:right;padding:6px 9px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left;font-variant-numeric:normal}
+th{color:var(--ink-3);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;
+  border-bottom:1px solid var(--ink-3)}
+tbody tr:hover{background:var(--surface-2)}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+svg text{fill:var(--ink-2);font-size:11px;font-family:inherit}
+svg .axis line,svg .axis path{stroke:var(--line)}
+svg .grid line{stroke:var(--line);stroke-dasharray:2 3}
+
+.note{background:var(--surface-2);border-left:3px solid var(--warn);border-radius:0 8px 8px 0;
+  padding:14px 16px;margin:18px 0}
+.note b{color:var(--ink)}
+footer{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);color:var(--ink-3);font-size:.83rem}
+#loading{padding:60px 0;text-align:center;color:var(--ink-3)}
+.hide{display:none}
+</style>
+
+<div class="wrap">
+  <h1>Where women are out of work in Los Angeles County</h1>
+  <p class="sub">Unemployment rate among women 16 and over in the civilian labor force, for every census tract in the county.</p>
+  <p class="muted">American Community Survey 2020&ndash;2024 five-year estimates &middot; U.S. Census Bureau table B23001 &middot; 2,498 tracts</p>
+
+  <div id="loading">Loading 2,496 tract outlines&hellip;</div>
+
+  <div id="app" class="hide">
+    <div class="controls">
+      <div class="ctl">
+        <label for="measure">Measure</label>
+        <select id="measure">
+          <option value="unemp_rate_f">Female unemployment rate</option>
+          <option value="unemp_rate_m">Male unemployment rate</option>
+          <option value="gap_f_minus_m">Female minus male (pct. points)</option>
+        </select>
+      </div>
+      <div class="ctl">
+        <label for="maxcv">Max coefficient of variation</label>
+        <input type="range" id="maxcv" min="10" max="200" step="10" value="200">
+        <output id="maxcvOut">no limit</output>
+      </div>
+      <div class="ctl">
+        <label for="minclf">Min women in labor force</label>
+        <input type="range" id="minclf" min="0" max="500" step="25" value="50">
+        <output id="minclfOut">50</output>
+      </div>
+      <div class="ctl">
+        <label for="corr">Compare against</label>
+        <select id="corr">
+          <option value="pct_poverty">Share in poverty (%)</option>
+          <option value="median_hh_income">Median household income ($)</option>
+          <option value="pct_bachelors_plus">Share with a bachelor's or more (%)</option>
+          <option value="pct_hispanic">Share Hispanic or Latino (%)</option>
+          <option value="pct_black_nh">Share Black, non-Hispanic (%)</option>
+          <option value="pct_white_nh">Share White, non-Hispanic (%)</option>
+          <option value="pct_asian_nh">Share Asian, non-Hispanic (%)</option>
+          <option value="female_clf">Women in the civilian labor force</option>
+        </select>
+      </div>
+      <div class="ctl" style="min-width:auto"><button class="reset" id="reset">Reset</button></div>
+    </div>
+
+    <div class="tiles">
+      <div class="tile"><div class="k">Tracts in view</div><div class="v" id="t_n">&mdash;</div></div>
+      <div class="tile"><div class="k">Median tract</div><div class="v" id="t_med">&mdash;</div></div>
+      <div class="tile"><div class="k">Labor-force weighted</div><div class="v" id="t_wm">&mdash;</div></div>
+      <div class="tile"><div class="k">Interquartile range</div><div class="v" id="t_iqr">&mdash;</div></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3 id="mapTitle">Female unemployment rate by census tract</h3>
+        <p class="muted" style="margin-bottom:10px">Hover to read a tract; click to pin it below. Grey tracts are filtered out or unmeasured.</p>
+        <div id="mapwrap">
+          <canvas id="map"></canvas>
+          <div id="tip"></div>
+        </div>
+        <div class="legend" id="legend"></div>
+        <div class="detail hide" id="detail"></div>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:22px">
+          <h3>Distribution across tracts</h3>
+          <svg id="hist" viewBox="0 0 420 240" width="100%" role="img" aria-label="Histogram of the selected measure across tracts"></svg>
+        </div>
+        <div class="card">
+          <h3 id="scTitle">Against tract poverty</h3>
+          <svg id="scatter" viewBox="0 0 420 300" width="100%" role="img" aria-label="Scatter plot of the selected measure against the selected correlate"></svg>
+          <p class="muted" id="fitinfo" style="margin:8px 0 0"></p>
+        </div>
+      </div>
+    </div>
+
+    <h2>Descriptive statistics</h2>
+    <div class="grid">
+      <div class="card">
+        <h3 id="descTitle">Summary of the selected measure</h3>
+        <div class="scroll"><table id="desc"></table></div>
+      </div>
+      <div class="card">
+        <h3>Correlations across tracts in view</h3>
+        <div class="scroll"><table id="cors"></table></div>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top:22px">
+      <div class="card">
+        <h3>Female unemployment by tract income fifth</h3>
+        <div class="scroll"><table id="quint"></table></div>
+      </div>
+      <div class="card">
+        <h3>How reliable are these estimates?</h3>
+        <div class="scroll"><table id="rel"></table></div>
+      </div>
+    </div>
+
+    <h2>Tracts ranked by the selected measure</h2>
+    <p class="muted">Highest and lowest 15 tracts currently in view. Every value carries a wide margin of error &mdash; read the caveat below before quoting any single tract.</p>
+    <div class="scroll"><table id="rank"></table></div>
+  </div>
+
+  <h2>The caveat that matters most</h2>
+  <div class="note">
+    <p><b>These are survey estimates, and at tract level they are very noisy.</b> A five-year ACS tract estimate rests on roughly 250 sampled housing units. Once you narrow to <i>women</i>, <i>in the labor force</i>, and <i>unemployed</i>, the underlying counts are often in the low dozens.</p>
+    <p>Of the 2,463 analyzable tracts, 2,393 have a defined coefficient of variation. Exactly <b>one</b> is at or below 15%, and <b>2,022 (84%)</b> exceed 40% &mdash; the level at which Census Bureau guidance treats an estimate as unreliable. The median is 55%. The remaining 70 tracts estimate female unemployment at exactly 0%, which leaves a <i>relative</i> error undefined; that is an artefact of a zero point estimate, not evidence of precision.</p>
+    <p style="margin-bottom:0">So: don't read a single tract's rate as a precise number, and don't read two adjacent tracts as different. The <i>patterns</i> &mdash; the income gradient, the Antelope Valley and South LA concentrations &mdash; are trustworthy in a way individual values are not, because they pool hundreds of tracts. Dragging the <b>max coefficient of variation</b> slider keeps only well-measured tracts, but that is not a neutral filter: the CV of a proportion falls as the proportion rises, so filtering hard biases the surviving sample upward. Watch the median move as you drag it.</p>
+  </div>
+
+  <h2>How the measure is built</h2>
+  <p><b>Female unemployment rate</b> = women aged 16+ who are unemployed &divide; women aged 16+ in the <i>civilian</i> labor force, summed across every age band of ACS table <b>B23001</b> (sex by age by employment status).</p>
+  <p>The obvious shortcut, subject table <b>S2301</b>, publishes a ready-made female rate &mdash; but only for ages 20&ndash;64. Building from B23001 covers the full 16-and-over population and lets margins of error be aggregated properly. One trap: ages 16&ndash;64 split the labor force into Armed Forces vs Civilian, so the denominator comes off the <code>Civilian:</code> line, while ages 65+ have no Armed Forces line, so there <code>In labor force:</code> already <i>is</i> the civilian total. Getting that wrong silently drops everyone over 65.</p>
+  <p>Margins of error follow <a href="https://www.census.gov/content/dam/Census/library/publications/2018/acs/acs_general_handbook_2018_ch08.pdf">ACS General Handbook ch. 8</a>: root-sum-of-squares for sums, counting only the largest zero-estimate cell; the proportion formula for the rate, falling back to the ratio formula when the radicand goes negative. Coefficient of variation = (MOE / 1.645) / estimate.</p>
+  <p class="muted">Five-year estimates are a 2020&ndash;2024 <i>average</i> spanning the pandemic shock and recovery, not a 2024 snapshot. ACS records sex as a binary item, so &ldquo;women&rdquo; means everyone the survey classified as female. Twenty-five tracts have no women in the civilian labor force at all (jails, hospital campuses, industrial and port land). The two Channel Islands tracts are omitted from the map geometry but remain in the data.</p>
+
+  <footer>
+    <p>Built from the U.S. Census Bureau <a href="https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/">ACS table-based summary files</a> and <a href="https://www2.census.gov/geo/tiger/TIGER2024/TRACT/">TIGER/Line 2024</a> tract geometry. Census data are in the public domain.</p>
+    <p id="repolinks"></p>
+  </footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var MEASURES={
+  unemp_rate_f:{label:"Female unemployment rate",unit:"%",diverging:false},
+  unemp_rate_m:{label:"Male unemployment rate",unit:"%",diverging:false},
+  gap_f_minus_m:{label:"Female minus male",unit:" pts",diverging:true}
+};
+var CORRLABEL={
+  pct_poverty:"Share in poverty (%)", median_hh_income:"Median household income ($)",
+  pct_bachelors_plus:"Share with a bachelor's or more (%)", pct_hispanic:"Share Hispanic or Latino (%)",
+  pct_black_nh:"Share Black, non-Hispanic (%)", pct_white_nh:"Share White, non-Hispanic (%)",
+  pct_asian_nh:"Share Asian, non-Hispanic (%)", female_clf:"Women in the civilian labor force"
+};
+var BINS=[3,5,7.5,10,15], BINLBL=["<3%","3-5%","5-7.5%","7.5-10%","10-15%","15%+"];
+var GAPBINS=[-8,-4,-1,1,4,8], GAPLBL=["<-8","-8 to -4","-4 to -1","-1 to 1","1 to 4","4 to 8",">8"];
+
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+function ramp(){return [css("--s1"),css("--s2"),css("--s3"),css("--s4"),css("--s5"),css("--s6")];}
+function divRamp(){return ["#104281","#3987e5","#9ec5f4",css("--surface-2"),"#f0a3a2","#e34948","#a52220"];}
+
+var D=null, F={}, state={measure:"unemp_rate_f",maxcv:200,minclf:50,corr:"pct_poverty",sel:null};
+var proj={}, pick=null, pickData=null, dpr=Math.min(window.devicePixelRatio||1,2);
+
+function val(i,f){var v=D.rows[i][F[f]]; return (v===null||v===undefined)?NaN:v;}
+function fmt(x,d){ if(!isFinite(x))return "—"; return x.toFixed(d===undefined?1:d).replace(/\B(?=(\d{3})+(?!\d))/g,","); }
+function pct(x,d){return isFinite(x)?fmt(x,d)+"%":"—";}
+
+/* ---------- filtering & stats ---------- */
+function passing(){
+  var out=[],i,v,cv,clf;
+  for(i=0;i<D.ids.length;i++){
+    v=val(i,state.measure); if(!isFinite(v)) continue;
+    clf=val(i,"female_clf"); if(!(clf>=state.minclf)) continue;
+    if(state.maxcv<200){ cv=val(i,"cv_f"); if(!isFinite(cv)||cv>state.maxcv) continue; }
+    out.push(i);
+  }
+  return out;
+}
+function quantile(sorted,p){
+  if(!sorted.length) return NaN;
+  var h=(sorted.length-1)*p, lo=Math.floor(h), hi=Math.ceil(h);
+  return sorted[lo]+(sorted[hi]-sorted[lo])*(h-lo);
+}
+function pearson(a,b){
+  var n=a.length,i,ma=0,mb=0,sa=0,sb=0,sab=0;
+  for(i=0;i<n;i++){ma+=a[i];mb+=b[i];} ma/=n; mb/=n;
+  for(i=0;i<n;i++){var da=a[i]-ma,db=b[i]-mb;sa+=da*da;sb+=db*db;sab+=da*db;}
+  return sab/Math.sqrt(sa*sb);
+}
+function rankify(v){
+  var idx=v.map(function(x,i){return i;}).sort(function(p,q){return v[p]-v[q];});
+  var r=new Array(v.length),i=0;
+  while(i<idx.length){
+    var j=i; while(j+1<idx.length && v[idx[j+1]]===v[idx[i]]) j++;
+    var avg=(i+j)/2+1;
+    for(var k=i;k<=j;k++) r[idx[k]]=avg;
+    i=j+1;
+  }
+  return r;
+}
+function spearman(a,b){return pearson(rankify(a),rankify(b));}
+
+/* ---------- colour ---------- */
+function colorFor(v){
+  if(!isFinite(v)) return css("--na");
+  if(MEASURES[state.measure].diverging){
+    var dr=divRamp(),k=0; while(k<GAPBINS.length && v>=GAPBINS[k]) k++;
+    return dr[k];
+  }
+  var r=ramp(),j=0; while(j<BINS.length && v>=BINS[j]) j++;
+  return r[j];
+}
+
+/* ---------- map ---------- */
+function setupProjection(w,h){
+  var bb=D.meta.bbox, latmid=(bb[1]+bb[3])/2, kx=Math.cos(latmid*Math.PI/180);
+  var gw=(bb[2]-bb[0])*kx, gh=bb[3]-bb[1];
+  var s=Math.min(w/gw,h/gh);
+  proj={s:s,kx:kx,x0:bb[0],y1:bb[3],ox:(w-gw*s)/2,oy:(h-gh*s)/2};
+}
+function px(lon){return proj.ox+(lon-proj.x0)*proj.kx*proj.s;}
+function py(lat){return proj.oy+(proj.y1-lat)*proj.s;}
+
+function tracePath(ctx,i){
+  var sh=D.shapes[i],r,c,k;
+  for(r=0;r<sh.length;r++){
+    c=sh[r]; if(c.length<6) continue;
+    ctx.moveTo(px(c[0]),py(c[1]));
+    for(k=2;k<c.length;k+=2) ctx.lineTo(px(c[k]),py(c[k+1]));
+    ctx.closePath();
+  }
+}
+function drawMap(){
+  var cv=document.getElementById("map"), w=cv.clientWidth||760, h=Math.round(w*0.86);
+  cv.width=w*dpr; cv.height=h*dpr; cv.style.height=h+"px";
+  var ctx=cv.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  setupProjection(w,h);
+
+  var keep={}, p=passing(), i;
+  for(i=0;i<p.length;i++) keep[p[i]]=true;
+
+  for(i=0;i<D.ids.length;i++){
+    ctx.beginPath(); tracePath(ctx,i);
+    ctx.fillStyle = keep[i] ? colorFor(val(i,state.measure)) : css("--na");
+    ctx.fill();
+  }
+  if(state.sel!==null){
+    ctx.beginPath(); tracePath(ctx,state.sel);
+    ctx.strokeStyle=css("--ink"); ctx.lineWidth=1.6; ctx.stroke();
+  }
+  buildPicking(w,h);
+  drawLegend();
+}
+/* Off-screen picking buffer: each tract drawn in a unique colour = its index. */
+function buildPicking(w,h){
+  if(!pick){pick=document.createElement("canvas");}
+  pick.width=w; pick.height=h;
+  var c=pick.getContext("2d",{willReadFrequently:true});
+  c.clearRect(0,0,w,h);
+  for(var i=0;i<D.ids.length;i++){
+    var n=i+1;
+    c.fillStyle="rgb("+(n&255)+","+((n>>8)&255)+","+((n>>16)&255)+")";
+    c.beginPath(); tracePath(c,i); c.fill();
+  }
+  pickData=c.getImageData(0,0,w,h).data;
+}
+function hitTest(x,y){
+  if(!pickData) return null;
+  var w=pick.width, o=(Math.round(y)*w+Math.round(x))*4;
+  var n=pickData[o]|(pickData[o+1]<<8)|(pickData[o+2]<<16);
+  return n>0 ? n-1 : null;
+}
+function drawLegend(){
+  var el=document.getElementById("legend"), div=MEASURES[state.measure].diverging;
+  var cols=div?divRamp():ramp(), lbl=div?GAPLBL:BINLBL, html="";
+  for(var i=0;i<lbl.length;i++)
+    html+='<div class="sw"><i style="background:'+cols[i]+'"></i><span>'+lbl[i]+'</span></div>';
+  html+='<div class="sw"><i style="background:'+css("--na")+'"></i><span>n/a</span></div>';
+  el.innerHTML=html;
+}
+
+/* ---------- detail panel ---------- */
+function showDetail(i){
+  var el=document.getElementById("detail");
+  if(i===null){el.className="detail hide";return;}
+  var r=val(i,"unemp_rate_f"), m=val(i,"unemp_rate_f_moe"), cv=val(i,"cv_f");
+  var inc=val(i,"median_hh_income");
+  el.className="detail";
+  el.innerHTML='<div class="dh">Census tract '+val(i,"tract")+' &middot; GEOID '+D.ids[i]+'</div>'+
+    '<div class="dgrid">'+
+    '<div><span>Female unemployment</span><b>'+pct(r)+'</b><br><span style="text-transform:none;letter-spacing:0">90% CI '+
+       pct(Math.max(0,r-m))+' to '+pct(r+m)+'</span></div>'+
+    '<div><span>Male unemployment</span><b>'+pct(val(i,"unemp_rate_m"))+'</b></div>'+
+    '<div><span>Gap (F&minus;M)</span><b>'+(isFinite(val(i,"gap_f_minus_m"))?fmt(val(i,"gap_f_minus_m"))+" pts":"—")+'</b></div>'+
+    '<div><span>Women in civilian LF</span><b>'+fmt(val(i,"female_clf"),0)+'</b></div>'+
+    '<div><span>Median hh income</span><b>'+(isFinite(inc)?"$"+fmt(inc,0):"not published")+'</b></div>'+
+    '<div><span>Share in poverty</span><b>'+pct(val(i,"pct_poverty"))+'</b></div>'+
+    '<div><span>Coefficient of variation</span><b>'+(isFinite(cv)?fmt(cv,0)+"%":"—")+
+       (cv>40?' <span style="color:var(--warn);text-transform:none;letter-spacing:0">unreliable</span>':'')+'</b></div>'+
+    '</div>';
+}
+
+/* ---------- histogram ---------- */
+function drawHist(p){
+  var svg=document.getElementById("hist"), W=420,H=240, ml=38,mr=10,mt=12,mb=30;
+  var vs=p.map(function(i){return val(i,state.measure);});
+  var div=MEASURES[state.measure].diverging;
+  var lo=div?-20:0, hi=div?20:36, nb=36;
+  var bw=(hi-lo)/nb, counts=new Array(nb).fill(0), off=0, i;
+  for(i=0;i<vs.length;i++){
+    var b=Math.floor((vs[i]-lo)/bw);
+    if(b<0||b>=nb){off++;continue;}
+    counts[b]++;
+  }
+  var mx=Math.max.apply(null,counts)||1;
+  var x=function(v){return ml+(v-lo)/(hi-lo)*(W-ml-mr);};
+  var y=function(c){return H-mb-c/mx*(H-mt-mb);};
+  var s='', t;
+  for(t=0;t<=4;t++){var yy=y(mx*t/4);
+    s+='<g class="grid"><line x1="'+ml+'" x2="'+(W-mr)+'" y1="'+yy+'" y2="'+yy+'"/></g>'+
+       '<text x="'+(ml-6)+'" y="'+(yy+3.5)+'" text-anchor="end">'+Math.round(mx*t/4)+'</text>';}
+  for(i=0;i<nb;i++){
+    if(!counts[i])continue;
+    var x0=x(lo+i*bw), x1=x(lo+(i+1)*bw);
+    s+='<rect x="'+x0+'" y="'+y(counts[i])+'" width="'+Math.max(1,x1-x0-1)+'" height="'+(H-mb-y(counts[i]))+
+       '" fill="'+css("--s4")+'"><title>'+fmt(lo+i*bw)+'–'+fmt(lo+(i+1)*bw)+': '+counts[i]+' tracts</title></rect>';
+  }
+  var sorted=vs.slice().sort(function(a,b){return a-b;}), med=quantile(sorted,.5);
+  if(isFinite(med)&&med>=lo&&med<=hi){
+    s+='<line x1="'+x(med)+'" x2="'+x(med)+'" y1="'+mt+'" y2="'+(H-mb)+'" stroke="'+css("--warn")+'" stroke-width="1.6"/>'+
+       '<text x="'+(x(med)+5)+'" y="'+(mt+11)+'" fill="'+css("--warn")+'">median '+fmt(med)+'</text>';
+  }
+  s+='<g class="axis"><line x1="'+ml+'" x2="'+(W-mr)+'" y1="'+(H-mb)+'" y2="'+(H-mb)+'"/></g>';
+  for(t=lo;t<=hi;t+=(div?10:6))
+    s+='<text x="'+x(t)+'" y="'+(H-mb+15)+'" text-anchor="middle">'+t+(div?'':'%')+'</text>';
+  s+='<text x="'+((ml+W-mr)/2)+'" y="'+(H-3)+'" text-anchor="middle">'+MEASURES[state.measure].label+'</text>';
+  if(off) s+='<text x="'+(W-mr)+'" y="'+(mt+11)+'" text-anchor="end">'+off+' outside range</text>';
+  svg.innerHTML=s;
+}
+
+/* ---------- scatter ---------- */
+function drawScatter(p){
+  var svg=document.getElementById("scatter"), W=420,H=300, ml=46,mr=12,mt=12,mb=38;
+  var xs=[],ys=[],i,xv,yv;
+  for(i=0;i<p.length;i++){
+    xv=val(p[i],state.corr); yv=val(p[i],state.measure);
+    if(isFinite(xv)&&isFinite(yv)){xs.push(xv);ys.push(yv);}
+  }
+  if(xs.length<10){svg.innerHTML='<text x="12" y="24">Too few tracts to plot.</text>';
+    document.getElementById("fitinfo").textContent=""; return;}
+  var xlo=Math.min.apply(null,xs), xhi=Math.max.apply(null,xs);
+  var ylo=Math.min.apply(null,ys), yhi=Math.max.apply(null,ys);
+  if(xhi===xlo)xhi=xlo+1; if(yhi===ylo)yhi=ylo+1;
+  var X=function(v){return ml+(v-xlo)/(xhi-xlo)*(W-ml-mr);};
+  var Y=function(v){return H-mb-(v-ylo)/(yhi-ylo)*(H-mt-mb);};
+  var s='',t,yy,vv;
+  for(t=0;t<=4;t++){ yy=mt+t/4*(H-mt-mb); vv=yhi-(yhi-ylo)*t/4;
+    s+='<g class="grid"><line x1="'+ml+'" x2="'+(W-mr)+'" y1="'+yy+'" y2="'+yy+'"/></g>'+
+       '<text x="'+(ml-6)+'" y="'+(yy+3.5)+'" text-anchor="end">'+fmt(vv,0)+'</text>';}
+  for(i=0;i<xs.length;i++)
+    s+='<circle cx="'+X(xs[i]).toFixed(1)+'" cy="'+Y(ys[i]).toFixed(1)+'" r="2.1" fill="'+css("--s5")+'" fill-opacity=".33"/>';
+  /* least-squares fit */
+  var n=xs.length,mxx=0,myy=0;
+  for(i=0;i<n;i++){mxx+=xs[i];myy+=ys[i];} mxx/=n;myy/=n;
+  var sxy=0,sxx=0;
+  for(i=0;i<n;i++){sxy+=(xs[i]-mxx)*(ys[i]-myy);sxx+=(xs[i]-mxx)*(xs[i]-mxx);}
+  var b=sxy/sxx, a=myy-b*mxx;
+  s+='<line x1="'+X(xlo)+'" y1="'+Y(a+b*xlo)+'" x2="'+X(xhi)+'" y2="'+Y(a+b*xhi)+
+     '" stroke="'+css("--warn")+'" stroke-width="1.8"/>';
+  s+='<g class="axis"><line x1="'+ml+'" x2="'+(W-mr)+'" y1="'+(H-mb)+'" y2="'+(H-mb)+'"/></g>';
+  for(t=0;t<=4;t++){ vv=xlo+(xhi-xlo)*t/4;
+    s+='<text x="'+X(vv)+'" y="'+(H-mb+15)+'" text-anchor="middle">'+fmt(vv,0)+'</text>';}
+  s+='<text x="'+((ml+W-mr)/2)+'" y="'+(H-6)+'" text-anchor="middle">'+CORRLABEL[state.corr]+'</text>';
+  s+='<text transform="translate(12,'+((mt+H-mb)/2)+') rotate(-90)" text-anchor="middle">'+MEASURES[state.measure].label+'</text>';
+  svg.innerHTML=s;
+  var r=pearson(xs,ys), rho=spearman(xs,ys);
+  document.getElementById("fitinfo").textContent=
+    "Slope "+b.toFixed(4)+" · Pearson r = "+r.toFixed(3)+" · Spearman ρ = "+rho.toFixed(3)+
+    " · R² = "+(r*r).toFixed(3)+" over "+n.toLocaleString()+" tracts.";
+  document.getElementById("scTitle").textContent="Against "+CORRLABEL[state.corr].replace(/ \(.*\)/,"").toLowerCase();
+}
+
+/* ---------- tables ---------- */
+function tbl(el,head,rows){
+  var s='<thead><tr>';
+  head.forEach(function(h){s+='<th>'+h+'</th>';});
+  s+='</tr></thead><tbody>';
+  rows.forEach(function(r){s+='<tr>';r.forEach(function(c){s+='<td>'+c+'</td>';});s+='</tr>';});
+  document.getElementById(el).innerHTML=s+'</tbody>';
+}
+function drawTables(p){
+  var vs=p.map(function(i){return val(i,state.measure);}).sort(function(a,b){return a-b;});
+  var u=MEASURES[state.measure].unit;
+  var sum=0,wsum=0,wn=0,i;
+  for(i=0;i<p.length;i++){var w=val(p[i],"female_clf");sum+=vs[i];wsum+=val(p[i],state.measure)*w;wn+=w;}
+  var mean=sum/vs.length, sd=0;
+  for(i=0;i<vs.length;i++) sd+=(vs[i]-mean)*(vs[i]-mean);
+  sd=Math.sqrt(sd/(vs.length-1));
+  var sk=0; for(i=0;i<vs.length;i++) sk+=Math.pow(vs[i]-mean,3);
+  sk=(sk/vs.length)/Math.pow(sd,3);
+
+  tbl("desc",["Statistic","Value"],[
+    ["Tracts",vs.length.toLocaleString()],["Mean",fmt(mean,2)+u],
+    ["Labor-force weighted mean",fmt(wsum/wn,2)+u],["Standard deviation",fmt(sd,2)],
+    ["Minimum",fmt(vs[0],2)+u],["5th percentile",fmt(quantile(vs,.05),2)+u],
+    ["25th percentile",fmt(quantile(vs,.25),2)+u],["Median",fmt(quantile(vs,.5),2)+u],
+    ["75th percentile",fmt(quantile(vs,.75),2)+u],["95th percentile",fmt(quantile(vs,.95),2)+u],
+    ["Maximum",fmt(vs[vs.length-1],2)+u],
+    ["Interquartile range",fmt(quantile(vs,.75)-quantile(vs,.25),2)],
+    ["Skewness",fmt(sk,2)]
+  ]);
+  document.getElementById("descTitle").textContent="Summary — "+MEASURES[state.measure].label;
+
+  var crows=[];
+  Object.keys(CORRLABEL).forEach(function(k){
+    var a=[],b=[];
+    for(i=0;i<p.length;i++){var xv=val(p[i],k),yv=val(p[i],state.measure);
+      if(isFinite(xv)&&isFinite(yv)){a.push(xv);b.push(yv);}}
+    if(a.length<10)return;
+    crows.push([CORRLABEL[k],pearson(a,b).toFixed(3),spearman(a,b).toFixed(3),a.length.toLocaleString()]);
+  });
+  crows.sort(function(x,y){return Math.abs(parseFloat(y[1]))-Math.abs(parseFloat(x[1]));});
+  tbl("cors",["Correlate","Pearson r","Spearman ρ","Tracts"],crows);
+
+  /* income fifths -- cut points from the full county, not the filtered view */
+  var allInc=[];
+  for(i=0;i<D.ids.length;i++){var v2=val(i,"median_hh_income"); if(isFinite(v2)) allInc.push(v2);}
+  allInc.sort(function(a,b){return a-b;});
+  var cut=[.2,.4,.6,.8].map(function(q){return quantile(allInc,q);});
+  var buckets=[[],[],[],[],[]], names=["Poorest fifth","2nd","3rd","4th","Richest fifth"];
+  for(i=0;i<p.length;i++){
+    var inc=val(p[i],"median_hh_income"); if(!isFinite(inc))continue;
+    var k2=0; while(k2<4 && inc>cut[k2]) k2++;
+    buckets[k2].push(val(p[i],state.measure));
+  }
+  tbl("quint",["Income fifth","Tracts","Median","Mean"],buckets.map(function(b,j){
+    b.sort(function(x,y){return x-y;});
+    var mn=b.reduce(function(s2,x){return s2+x;},0)/b.length;
+    return [names[j],b.length.toLocaleString(),b.length?fmt(quantile(b,.5),2)+u:"—",
+            b.length?fmt(mn,2)+u:"—"];
+  }));
+
+  /* Reliability. A tract whose estimated rate is exactly 0 has no defined CV --
+     that is not precision, so it is reported on its own line rather than being
+     folded into the worst band. */
+  var cvs=[], undef=0;
+  for(i=0;i<p.length;i++){
+    var c=val(p[i],"cv_f");
+    if(isFinite(c)) cvs.push(c); else undef++;
+  }
+  cvs.sort(function(a,b){return a-b;});
+  var band=function(lo,hi){var n2=cvs.filter(function(c){return c>lo&&c<=hi;}).length;
+    return n2.toLocaleString()+" ("+(100*n2/cvs.length).toFixed(0)+"%)";};
+  tbl("rel",["Reliability of the female rate","Tracts"],[
+    ["Median coefficient of variation",cvs.length?fmt(quantile(cvs,.5),0)+"%":"—"],
+    ["CV at or below 15% — reliable",band(-1,15)],
+    ["CV 15–30% — usable",band(15,30)],
+    ["CV 30–40% — weak",band(30,40)],
+    ["CV above 40% — unreliable",band(40,1e9)],
+    ["Estimated rate is exactly 0%, CV undefined",undef.toLocaleString()]
+  ]);
+
+  var srt=p.slice().sort(function(a,b){return val(b,state.measure)-val(a,state.measure);});
+  var mk=function(i2){return [val(i2,"tract"),pct(val(i2,"unemp_rate_f")),
+    "±"+fmt(val(i2,"unemp_rate_f_moe")),fmt(val(i2,"cv_f"),0)+"%",
+    pct(val(i2,"unemp_rate_m")),fmt(val(i2,"female_clf"),0),
+    isFinite(val(i2,"median_hh_income"))?"$"+fmt(val(i2,"median_hh_income"),0):"—",
+    pct(val(i2,"pct_poverty"))];};
+  var top=srt.slice(0,15).map(mk), bot=srt.slice(-15).reverse().map(mk);
+  var head=["Tract","Female rate","90% MOE","CV","Male rate","Women in LF","Median income","Poverty"];
+  var s='<thead><tr>'+head.map(function(h){return '<th>'+h+'</th>';}).join('')+'</tr></thead><tbody>';
+  s+='<tr><td colspan="8" style="color:var(--ink-3);font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;padding-top:12px">Highest 15</td></tr>';
+  top.forEach(function(r){s+='<tr>'+r.map(function(c){return '<td>'+c+'</td>';}).join('')+'</tr>';});
+  s+='<tr><td colspan="8" style="color:var(--ink-3);font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;padding-top:12px">Lowest 15</td></tr>';
+  bot.forEach(function(r){s+='<tr>'+r.map(function(c){return '<td>'+c+'</td>';}).join('')+'</tr>';});
+  document.getElementById("rank").innerHTML=s+'</tbody>';
+}
+
+/* ---------- orchestration ---------- */
+function render(){
+  var p=passing();
+  var vs=p.map(function(i){return val(i,state.measure);}).sort(function(a,b){return a-b;});
+  var wsum=0,wn=0;
+  for(var i=0;i<p.length;i++){var w=val(p[i],"female_clf");wsum+=val(p[i],state.measure)*w;wn+=w;}
+  var u=MEASURES[state.measure].unit;
+  document.getElementById("t_n").textContent=p.length.toLocaleString();
+  document.getElementById("t_med").textContent=fmt(quantile(vs,.5))+u;
+  document.getElementById("t_wm").textContent=fmt(wsum/wn)+u;
+  document.getElementById("t_iqr").textContent=fmt(quantile(vs,.25))+"–"+fmt(quantile(vs,.75))+u;
+  document.getElementById("mapTitle").textContent=MEASURES[state.measure].label+" by census tract";
+  drawMap(); drawHist(p); drawScatter(p); drawTables(p);
+}
+
+function bind(){
+  var m=document.getElementById("measure"), cv=document.getElementById("maxcv"),
+      cl=document.getElementById("minclf"), co=document.getElementById("corr");
+  m.onchange=function(){state.measure=m.value;render();};
+  co.onchange=function(){state.corr=co.value;render();};
+  cv.oninput=function(){state.maxcv=+cv.value;
+    document.getElementById("maxcvOut").textContent=(+cv.value>=200)?"no limit":cv.value+"%";render();};
+  cl.oninput=function(){state.minclf=+cl.value;
+    document.getElementById("minclfOut").textContent=cl.value;render();};
+  document.getElementById("reset").onclick=function(){
+    state={measure:"unemp_rate_f",maxcv:200,minclf:50,corr:"pct_poverty",sel:null};
+    m.value="unemp_rate_f";co.value="pct_poverty";cv.value=200;cl.value=50;
+    document.getElementById("maxcvOut").textContent="no limit";
+    document.getElementById("minclfOut").textContent="50";
+    showDetail(null);render();
+  };
+
+  var cvs=document.getElementById("map"), tip=document.getElementById("tip");
+  cvs.addEventListener("mousemove",function(e){
+    var r=cvs.getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top;
+    var i=hitTest(x,y);
+    if(i===null){tip.style.opacity=0;return;}
+    var v=val(i,state.measure);
+    tip.innerHTML="Tract "+val(i,"tract")+"<br>"+MEASURES[state.measure].label+": "+
+      (isFinite(v)?fmt(v)+MEASURES[state.measure].unit:"n/a");
+    tip.style.opacity=1;
+    tip.style.left=Math.min(x+14,r.width-190)+"px"; tip.style.top=Math.max(0,y-46)+"px";
+  });
+  cvs.addEventListener("mouseleave",function(){tip.style.opacity=0;});
+  cvs.addEventListener("click",function(e){
+    var r=cvs.getBoundingClientRect();
+    var i=hitTest(e.clientX-r.left,e.clientY-r.top);
+    state.sel=i; showDetail(i); drawMap();
+  });
+
+  var t=null;
+  window.addEventListener("resize",function(){clearTimeout(t);t=setTimeout(function(){drawMap();},180);});
+  if(window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",render);
+}
+
+fetch("data/tracts.json").then(function(r){
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return r.json();
+}).then(function(j){
+  D=j; j.fields.forEach(function(f,i){F[f]=i;});
+  document.getElementById("loading").className="hide";
+  document.getElementById("app").className="";
+  var repo=location.hostname.endsWith("github.io")
+    ? "https://github.com/"+location.hostname.split(".")[0]+"/"+location.pathname.split("/")[1] : null;
+  document.getElementById("repolinks").innerHTML=
+    '<a href="data/tracts.json">Download the tract data (JSON)</a>'+
+    (repo?' &middot; <a href="'+repo+'">Source, R pipeline, SAS reproduction and Shiny app on GitHub</a>':'');
+  bind(); render();
+}).catch(function(e){
+  document.getElementById("loading").innerHTML=
+    "Could not load the tract data ("+e.message+"). If you are opening this file directly from disk, "+
+    "run a local server instead: <code>python3 -m http.server</code> in the <code>site/</code> folder.";
+});
+})();
+</script>
