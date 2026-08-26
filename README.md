@@ -21,6 +21,7 @@ shiny_app/notes.md                     methodology notes shown inside the app
 docs/index.html                        the static site served by GitHub Pages
 docs/data/tracts.json                  ~830 KB: simplified outlines + attributes
 sas/la_female_unemployment.sas         the same analysis in SAS
+report/data_sources.pdf                data sources & provenance report (LaTeX in data_sources.tex)
 ```
 
 ## The live site vs the Shiny app
@@ -206,6 +207,9 @@ accessibility and vehicle-availability covariates (ACS table B08201), which is
 where the LA-specific literature says the explanatory power actually sits.
 
 ## Sources
+
+A standalone PDF documenting where every input came from and how it was
+processed is at [`report/data_sources.pdf`](report/data_sources.pdf).
 
 - [ACS 5-Year Data (2009–2024), Census developer documentation](https://www.census.gov/data/developers/data-sets/acs-5year.html)
 - [ACS table-based summary files, 2024](https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/)
