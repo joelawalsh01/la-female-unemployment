@@ -1,0 +1,152 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage{parskip}
+\urlstyle{tt}
+
+\title{Data Sources and Provenance\\[4pt]
+\large Female Unemployment Across Los Angeles County Census Tracts\\
+American Community Survey 2020--2024 Five-Year Estimates}
+\author{Joel Walsh}
+\date{August 26, 2026}
+
+\begin{document}
+\maketitle
+
+\section{Overview}
+
+All data in this project come from two public U.S.\ Census Bureau sources:
+the \textbf{American Community Survey (ACS) 2020--2024 five-year estimates},
+distributed as table-based summary files, and the \textbf{TIGER/Line 2024}
+census-tract boundary shapefiles. No third-party or proprietary data are
+used, and no API key is required for any download.
+
+The 2020--2024 five-year release (published December 2025) is the most
+recent ACS release carrying census-tract-level detail. Estimates are
+five-year averages over the 2020--2024 collection period, not a 2024
+snapshot.
+
+\section{Why the summary files rather than the Census API}
+
+The conventional route to ACS data, the \url{api.census.gov} data
+endpoints, now requires a (free) API key. This pipeline instead reads the
+public \emph{table-based summary files} --- static pipe-delimited downloads
+hosted on \url{www2.census.gov} that need no key or registration:
+
+\begin{center}
+\small\url{https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/data/5YRData/}
+\end{center}
+
+Each table is a single national file (roughly 80--305\,MB, one row per
+geography at every published summary level). The build script
+(\texttt{R/01\_build\_data.R}) downloads each national file to a temporary
+location, keeps only the rows whose \texttt{GEO\_ID} begins with
+\texttt{1400000US06037} --- summary level 140 (census tract), state 06
+(California), county 037 (Los Angeles) --- writes that slice to
+\texttt{data/raw/}, and deletes the national file. The SAS reproduction
+(\texttt{sas/la\_female\_unemployment.sas}) follows the same procedure and
+includes a keyed API alternative in a trailing comment.
+
+\section{ACS tables used}
+
+Five detailed tables were retrieved, each from a URL of the form
+\texttt{acsdt5y2024-\textit{table}.dat} under the directory above.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}llp{5.6cm}@{}}
+\toprule
+Table & Subject & Used for \\
+\midrule
+B23001 & Sex by age by employment status & Female and male unemployment rates (the outcome measure) and their margins of error \\
+B19013 & Median household income & Income correlate; income-quintile gradient \\
+B17001 & Poverty status by sex by age & Tract poverty share \\
+B15003 & Educational attainment (25+) & Share with bachelor's degree or higher \\
+B03002 & Hispanic or Latino origin by race & Total population; Hispanic, non-Hispanic White, Black, and Asian shares \\
+\bottomrule
+\end{tabular}
+\caption{ACS 2020--2024 five-year detailed tables. The Los Angeles County
+slices are retained in \texttt{data/raw/} (2{,}498 tract rows each).}
+\end{table}
+
+A note on B23001 versus the obvious shortcut: subject table S2301
+publishes a ready-made female unemployment rate, but only for ages 20--64.
+Building the measure from B23001 covers the full 16-and-over civilian
+labor force and allows margins of error to be aggregated properly from the
+component cells.
+
+\section{Tract geometry}
+
+Census-tract boundaries come from the TIGER/Line 2024 shapefile for
+California:
+
+\begin{center}
+\small\url{https://www2.census.gov/geo/tiger/TIGER2024/TRACT/tl_2024_06_tract.zip}
+\end{center}
+
+The build script keeps the Los Angeles County tracts
+(\texttt{COUNTYFP == 037}), retains the \texttt{GEOID},
+\texttt{NAMELSAD}, \texttt{ALAND}, and \texttt{AWATER} fields, transforms
+to NAD83 (EPSG:4269), and simplifies geometry with a tolerance of
+$2\times10^{-4}$ degrees (topology preserved). The result is saved as
+\texttt{data/la\_tracts\_geom.rds}; a further-simplified version is
+exported to \texttt{docs/data/tracts.json} for the static site.
+
+\section{Processing applied to the source data}
+
+\begin{itemize}
+\item \textbf{Sentinel values.} The summary files publish
+  $-666666666$ and related sentinels for ``not available''; these are
+  recoded to missing.
+\item \textbf{Outcome measure.} Female unemployment rate $=$ women 16+
+  unemployed $\div$ women 16+ in the \emph{civilian} labor force, summed
+  over every age band of B23001. For ages 16--64 the civilian labor force
+  is read from the \texttt{Civilian:} lines (the labor force there splits
+  into Armed Forces and Civilian); for ages 65+ there is no Armed Forces
+  line, so \texttt{In labor force:} is itself the civilian total.
+\item \textbf{Margins of error.} Component MOEs are aggregated by the
+  rules of the ACS General Handbook, chapter~8: root sum of squares for
+  sums, counting only the single largest zero-estimate cell; the
+  proportion formula for the rate, falling back to the ratio formula
+  where the radicand is negative. Published MOEs are at the 90\%\
+  confidence level, so standard errors are $\mathrm{MOE}/1.645$.
+\item \textbf{Reliability.} A coefficient of variation is carried for
+  every tract. Tracts whose estimated rate is exactly 0\%\ (70 tracts)
+  have an undefined CV and are left missing; tracts with no women in the
+  civilian labor force (25 tracts) are suppressed. Of the analyzable
+  tracts, 84\%\ have CV $>$ 40\%\ --- ``unreliable'' by Census Bureau
+  guidance --- so individual tract values should be read with their
+  confidence intervals, not as precise numbers.
+\end{itemize}
+
+\section{Source references}
+
+\begin{itemize}
+\item ACS 5-Year Data (2009--2024), Census developer documentation:\\
+  \small\url{https://www.census.gov/data/developers/data-sets/acs-5year.html}
+\item ACS table-based summary files, 2024 release:\\
+  \small\url{https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/}
+\item TIGER/Line 2024 census tract shapefiles:\\
+  \small\url{https://www2.census.gov/geo/tiger/TIGER2024/TRACT/}
+\item ACS General Handbook, ch.~8 (calculating measures of error for derived estimates):\\
+  \small\url{https://www.census.gov/content/dam/Census/library/publications/2018/acs/acs_general_handbook_2018_ch08.pdf}
+\item ACS General Handbook, ch.~7 (understanding error and determining statistical significance):\\
+  \small\url{https://www.census.gov/content/dam/Census/library/publications/2018/acs/acs_general_handbook_2018_ch07.pdf}
+\item Census Bureau guidance for labor force statistics data users:\\
+  \small\url{https://www.census.gov/topics/employment/labor-force/guidance.html}
+\end{itemize}
+
+\vfill
+\noindent\rule{\linewidth}{0.4pt}\\
+\small Repository: \url{https://github.com/joelawalsh01/la-female-unemployment}
+\quad$\cdot$\quad Live site: \url{https://joelawalsh01.github.io/la-female-unemployment/}\\
+Data retrieved July 29, 2026 by \texttt{R/01\_build\_data.R}.
+
+\end{document}
